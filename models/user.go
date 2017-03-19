@@ -70,7 +70,7 @@ func (u *User) Insert() (code int, err error) {
 	mConn := mongo.Conn()
 	defer mConn.Close()
 
-	c := mConn.DB("").C("users")
+	c := mConn.DB("cloud-platform").C("users")
 	err = c.Insert(u)
 
 	if err != nil {
@@ -90,8 +90,27 @@ func (u *User) FindByID(id string) (code int, err error) {
 	mConn := mongo.Conn()
 	defer mConn.Close()
 
-	c := mConn.DB("").C("users")
+	c := mConn.DB("cloud-platform").C("users")
 	err = c.FindId(id).One(u)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			code = ErrNotFound
+		} else {
+			code = ErrDatabase
+		}
+	} else {
+		code = 0
+	}
+	return
+}
+// query user info by input "name"
+func (u *User) FindByName(name string) (code int, err error) {
+	mConn := mongo.Conn()
+	defer mConn.Clone()
+
+	c := mConn.DB("cloud-platform").C("users")
+	err = c.Find(bson.M{"name":"patrick"}).One(u)
 
 	if err != nil {
 		if err == mgo.ErrNotFound {
