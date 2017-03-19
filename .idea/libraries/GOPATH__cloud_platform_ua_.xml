@@ -1,0 +1,53 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;cloud-platform-ua&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../alert" />
+      <root url="file://$PROJECT_DIR$/../restapi" />
+      <root url="file://$PROJECT_DIR$/../query_server" />
+      <root url="file://$PROJECT_DIR$/../monitor_service" />
+      <root url="file://$PROJECT_DIR$/../ReverseProxy" />
+      <root url="file://$PROJECT_DIR$/../alert-collector" />
+      <root url="file://$PROJECT_DIR$/../mydocker" />
+      <root url="file://$PROJECT_DIR$/../code.cloudfoundry.org" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../MessageCenter" />
+      <root url="file://$PROJECT_DIR$/../functions" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../influx-alert-master" />
+      <root url="file://$PROJECT_DIR$/../service-cloud" />
+      <root url="file://$PROJECT_DIR$/../webTest" />
+      <root url="file://$PROJECT_DIR$/../beego-demo" />
+      <root url="file://$PROJECT_DIR$/../sourcegraph.com" />
+      <root url="file://$PROJECT_DIR$/../cloud-platform" />
+      <root url="file://$PROJECT_DIR$/../serverless-iron" />
+      <root url="file://$PROJECT_DIR$/../hello" />
+    </CLASSES>
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../alert" />
+      <root url="file://$PROJECT_DIR$/../restapi" />
+      <root url="file://$PROJECT_DIR$/../query_server" />
+      <root url="file://$PROJECT_DIR$/../monitor_service" />
+      <root url="file://$PROJECT_DIR$/../ReverseProxy" />
+      <root url="file://$PROJECT_DIR$/../alert-collector" />
+      <root url="file://$PROJECT_DIR$/../mydocker" />
+      <root url="file://$PROJECT_DIR$/../code.cloudfoundry.org" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../MessageCenter" />
+      <root url="file://$PROJECT_DIR$/../functions" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../influx-alert-master" />
+      <root url="file://$PROJECT_DIR$/../service-cloud" />
+      <root url="file://$PROJECT_DIR$/../webTest" />
+      <root url="file://$PROJECT_DIR$/../beego-demo" />
+      <root url="file://$PROJECT_DIR$/../sourcegraph.com" />
+      <root url="file://$PROJECT_DIR$/../cloud-platform" />
+      <root url="file://$PROJECT_DIR$/../serverless-iron" />
+      <root url="file://$PROJECT_DIR$/../hello" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>

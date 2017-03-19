@@ -1,0 +1,37 @@
+swagger: "2.0"
+info:
+  title: beego Test API
+  description: beego has a very cool tools to autogenerate documents for your API
+  version: 1.0.0
+  termsOfService: http://beego.me/
+  contact:
+    email: astaxie@gmail.com
+  license:
+    name: Url http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: cp-ua/v1
+paths:
+  /user/register:
+    post:
+      tags:
+      - user
+      description: register
+      parameters:
+      - in: formData
+        name: phone
+        description: 注册用户的手机号
+        required: true
+        type: string
+      - in: formData
+        name: name
+        description: 注册用户的名称
+        required: true
+        type: string
+      - in: fromData
+        name: password
+        description: 注册用户的密码
+        required: true
+        type: string
+tags:
+- name: user
+  description: |
+    Operations about Users

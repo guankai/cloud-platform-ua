@@ -1,86 +1,163 @@
 package models
 
 import (
-	"errors"
-	"strconv"
+	"crypto/rand"
+	"fmt"
+	"io"
 	"time"
+
+	"cloud-platform-ua/models/mongo"
+
+	"golang.org/x/crypto/scrypt"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
-var (
-	UserList map[string]*User
-)
-
-func init() {
-	UserList = make(map[string]*User)
-	u := User{"user_11111", "astaxie", "11111", Profile{"male", 20, "Singapore", "astaxie@gmail.com"}}
-	UserList["user_11111"] = &u
-}
-
+// User model definiton.
 type User struct {
-	Id       string
-	Username string
-	Password string
-	Profile  Profile
+	ID       string    `bson:"_id"      json:"_id,omitempty"`
+	Name     string    `bson:"name"     json:"name,omitempty"`
+	Password string    `bson:"password" json:"password,omitempty"`
+	Salt     string    `bson:"salt"     json:"salt,omitempty"`
+	RegDate  time.Time `bson:"reg_date" json:"reg_date,omitempty"`
+	NoEncPwd string   `bson:"no_enc_pwd" json:"no_enc_pwd,omitempty"`
 }
 
-type Profile struct {
-	Gender  string
-	Age     int
-	Address string
-	Email   string
-}
+const pwHashBytes = 64
 
-func AddUser(u User) string {
-	u.Id = "user_" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	UserList[u.Id] = &u
-	return u.Id
-}
-
-func GetUser(uid string) (u *User, err error) {
-	if u, ok := UserList[uid]; ok {
-		return u, nil
+func generateSalt() (salt string, err error) {
+	buf := make([]byte, pwHashBytes)
+	if _, err := io.ReadFull(rand.Reader, buf); err != nil {
+		return "", err
 	}
-	return nil, errors.New("User not exists")
+
+	return fmt.Sprintf("%x", buf), nil
 }
 
-func GetAllUsers() map[string]*User {
-	return UserList
-}
-
-func UpdateUser(uid string, uu *User) (a *User, err error) {
-	if u, ok := UserList[uid]; ok {
-		if uu.Username != "" {
-			u.Username = uu.Username
-		}
-		if uu.Password != "" {
-			u.Password = uu.Password
-		}
-		if uu.Profile.Age != 0 {
-			u.Profile.Age = uu.Profile.Age
-		}
-		if uu.Profile.Address != "" {
-			u.Profile.Address = uu.Profile.Address
-		}
-		if uu.Profile.Gender != "" {
-			u.Profile.Gender = uu.Profile.Gender
-		}
-		if uu.Profile.Email != "" {
-			u.Profile.Email = uu.Profile.Email
-		}
-		return u, nil
+func generatePassHash(password string, salt string) (hash string, err error) {
+	h, err := scrypt.Key([]byte(password), []byte(salt), 16384, 8, 1, pwHashBytes)
+	if err != nil {
+		return "", err
 	}
-	return nil, errors.New("User Not Exist")
+
+	return fmt.Sprintf("%x", h), nil
 }
 
-func Login(username, password string) bool {
-	for _, u := range UserList {
-		if u.Username == username && u.Password == password {
-			return true
-		}
+// NewUser alloc and initialize a user.
+func NewUser(r *RegisterForm, t time.Time) (u *User, err error) {
+	salt, err := generateSalt()
+	if err != nil {
+		return nil, err
 	}
-	return false
+	hash, err := generatePassHash(r.Password, salt)
+	if err != nil {
+		return nil, err
+	}
+
+	user := User{
+		ID:       r.Phone,
+		Name:     r.Name,
+		Password: hash,
+		Salt:     salt,
+		NoEncPwd: r.Password,
+		RegDate:  t}
+
+	return &user, nil
 }
 
-func DeleteUser(uid string) {
-	delete(UserList, uid)
+// Insert insert a document to collection.
+func (u *User) Insert() (code int, err error) {
+	mConn := mongo.Conn()
+	defer mConn.Close()
+
+	c := mConn.DB("").C("users")
+	err = c.Insert(u)
+
+	if err != nil {
+		if mgo.IsDup(err) {
+			code = ErrDupRows
+		} else {
+			code = ErrDatabase
+		}
+	} else {
+		code = 0
+	}
+	return
+}
+
+// FindByID query a document according to input id.
+func (u *User) FindByID(id string) (code int, err error) {
+	mConn := mongo.Conn()
+	defer mConn.Close()
+
+	c := mConn.DB("").C("users")
+	err = c.FindId(id).One(u)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			code = ErrNotFound
+		} else {
+			code = ErrDatabase
+		}
+	} else {
+		code = 0
+	}
+	return
+}
+
+// CheckPass compare input password.
+func (u *User) CheckPass(pass string) (ok bool, err error) {
+	hash, err := generatePassHash(pass, u.Salt)
+	if err != nil {
+		return false, err
+	}
+
+	return u.Password == hash, nil
+}
+
+// ClearPass clear password information.
+func (u *User) ClearPass() {
+	u.Password = ""
+	u.Salt = ""
+}
+
+// ChangePass update password and salt information according to input id.
+func ChangePass(id, oldPass, newPass string) (code int, err error) {
+	mConn := mongo.Conn()
+	defer mConn.Close()
+
+	c := mConn.DB("").C("users")
+	u := User{}
+	err = c.FindId(id).One(&u)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return ErrNotFound, err
+		}
+
+		return ErrDatabase, err
+	}
+
+	oldHash, err := generatePassHash(oldPass, u.Salt)
+	if err != nil {
+		return ErrSystem, err
+	}
+	newSalt, err := generateSalt()
+	if err != nil {
+		return ErrSystem, err
+	}
+	newHash, err := generatePassHash(newPass, newSalt)
+	if err != nil {
+		return ErrSystem, err
+	}
+
+	err = c.Update(bson.M{"_id": id, "password": oldHash}, bson.M{"$set": bson.M{"password": newHash, "salt": newSalt}})
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return ErrNotFound, err
+		}
+
+		return ErrDatabase, err
+	}
+
+	return 0, nil
 }
