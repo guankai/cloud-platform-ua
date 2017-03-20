@@ -22,6 +22,7 @@ const (
 	ErrOpenFile     = "打开文件出错"
 	ErrWriteFile    = "写文件出错"
 	ErrSystem       = "操作系统错误"
+	SessId          = "user_id_"
 )
 
 // ControllerError is controller error info structer.

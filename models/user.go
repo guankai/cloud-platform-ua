@@ -20,7 +20,8 @@ type User struct {
 	Password string    `bson:"password" json:"password,omitempty"`
 	Salt     string    `bson:"salt"     json:"salt,omitempty"`
 	RegDate  time.Time `bson:"reg_date" json:"reg_date,omitempty"`
-	NoEncPwd string   `bson:"no_enc_pwd" json:"no_enc_pwd,omitempty"`
+	NoEncPwd string    `bson:"no_enc_pwd" json:"no_enc_pwd,omitempty"`
+	Email    string    `bson:"email" json:"email,omitempty"`
 }
 
 const pwHashBytes = 64
@@ -110,7 +111,7 @@ func (u *User) FindByName(name string) (code int, err error) {
 	defer mConn.Clone()
 
 	c := mConn.DB("cloud-platform").C("users")
-	err = c.Find(bson.M{"name":"patrick"}).One(u)
+	err = c.Find(bson.M{"name":name}).One(u)
 
 	if err != nil {
 		if err == mgo.ErrNotFound {

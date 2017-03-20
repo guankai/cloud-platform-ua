@@ -4,7 +4,6 @@ import (
 	"github.com/astaxie/beego"
 	"cloud-platform-ua/models"
 	"time"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 // Operations about Users
@@ -75,10 +74,10 @@ func (this *UserController) Login() {
 	}
 	// 验证用户是否存在
 	user := models.User{}
-	if phone != nil || phone != "" {
+	if phone != "" {
 		//通过手机号查找
 		if code, err := user.FindByID(phone); err != nil {
-			beego.Error("通过手机号查找用户失败" + err)
+			beego.Error("通过手机号查找用户失败", err)
 			if code == models.ErrNotFound {
 				this.Data["json"] = models.NewErrorInfo(ErrNoUser)
 			} else {
@@ -89,8 +88,9 @@ func (this *UserController) Login() {
 		}
 	} else {
 		//通过用户名查找
+		beego.Debug("enter to find by name...")
 		if code, err := user.FindByName(name); err != nil {
-			beego.Error("通过用户名查找用户失败" + err)
+			beego.Error("通过用户名查找用户失败", err)
 			if code == models.ErrNotFound {
 				this.Data["json"] = models.NewErrorInfo(ErrNoUser)
 			} else {
@@ -114,10 +114,41 @@ func (this *UserController) Login() {
 	}
 	user.ClearPass()
 
-	this.SetSession("user_id", user.ID)
+	this.SetSession(SessId + user.ID, user.ID)
 
 	this.Data["json"] = &models.LoginInfo{Code: 0, UserInfo: &user}
 	this.ServeJSON()
 
+}
+// @Description user logout
+// @Param phone formData string true "用户手机号"
+// @router /logout [post]
+func (this *UserController) Logout() {
+	form := models.LogoutForm{}
+	if err := this.ParseForm(&form); err != nil {
+		beego.Debug("ParseLogoutForm:", err)
+		this.Data["json"] = models.NewErrorInfo(ErrInputData)
+		this.ServeJSON()
+		return
+	}
+	beego.Debug("ParseLogoutForm:", &form)
+
+	if err := this.VerifyForm(&form); err != nil {
+		beego.Debug("ValidLogoutForm:", err)
+		this.Data["json"] = models.NewErrorInfo(ErrInputData)
+		this.ServeJSON()
+		return
+	}
+
+	if this.GetSession(SessId + form.Phone) != form.Phone {
+		this.Data["json"] = models.NewErrorInfo(ErrInvalidUser)
+		this.ServeJSON()
+		return
+	}
+
+	this.DelSession(SessId + form.Phone)
+
+	this.Data["json"] = models.NewNormalInfo("Succes")
+	this.ServeJSON()
 }
 
