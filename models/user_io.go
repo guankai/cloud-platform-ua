@@ -8,6 +8,12 @@ type RegisterForm struct {
 	Email    string `form:"email" valid:"Required"`
 }
 
+type UpdateForm struct {
+	Phone string `form:"phone" valid:"Required;Mobile"`
+	Name     string `form:"name"     valid:"Required"`
+	Email    string `form:"email" valid:"Required"`
+}
+
 // LoginForm definiton.
 type LoginForm struct {
 	Phone    string `form:"phone"    valid:"Required;Mobile"`

@@ -22,6 +22,7 @@ type User struct {
 	RegDate  time.Time `bson:"reg_date" json:"reg_date,omitempty"`
 	NoEncPwd string    `bson:"no_enc_pwd" json:"no_enc_pwd,omitempty"`
 	Email    string    `bson:"email" json:"email,omitempty"`
+	IsAdmin  int       `bson:"is_admin" json:"is_admin,omitempty"`
 }
 
 const pwHashBytes = 64
@@ -61,6 +62,7 @@ func NewUser(r *RegisterForm, t time.Time) (u *User, err error) {
 		Password: hash,
 		Salt:     salt,
 		NoEncPwd: r.Password,
+		IsAdmin: 0,
 		RegDate:  t}
 
 	return &user, nil
@@ -122,6 +124,16 @@ func (u *User) FindByName(name string) (code int, err error) {
 	} else {
 		code = 0
 	}
+	return
+}
+// update user information
+func (u *User) UpdateUser()  (err error) {
+	mConn := mongo.Conn()
+	defer mConn.Clone()
+	c := mConn.DB("cloud-platform").C("users")
+	selector := bson.M{"_id":u.ID}
+	data := bson.M{"$set":bson.M{"name":u.Name, "email":u.Email}}
+	_, err = c.Upsert(selector, data)
 	return
 }
 
