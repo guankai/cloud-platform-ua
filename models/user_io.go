@@ -16,7 +16,7 @@ type UpdateForm struct {
 
 // LoginForm definiton.
 type LoginForm struct {
-	Phone    string `form:"phone"    valid:"Required;Mobile"`
+	Name    string `form:"name"    valid:"Required"`
 	Password string `form:"password" valid:"Required"`
 }
 
@@ -28,7 +28,7 @@ type LoginInfo struct {
 
 // LogoutForm defintion.
 type LogoutForm struct {
-	Phone string `form:"phone" valid:"Required;Mobile"`
+	Name string `form:"name" valid:"Required"`
 }
 
 // PasswdForm definition.

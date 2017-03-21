@@ -15,7 +15,8 @@ import (
 
 // User model definiton.
 type User struct {
-	ID       string    `bson:"_id"      json:"_id,omitempty"`
+	ID       bson.ObjectId    `bson:"_id"      json:"_id,omitempty"`
+	Phone    string    `bson:"phone"    json:"phone,omitempty"`
 	Name     string    `bson:"name"     json:"name,omitempty"`
 	Password string    `bson:"password" json:"password,omitempty"`
 	Salt     string    `bson:"salt"     json:"salt,omitempty"`
@@ -57,8 +58,10 @@ func NewUser(r *RegisterForm, t time.Time) (u *User, err error) {
 	}
 
 	user := User{
-		ID:       r.Phone,
+		ID:          bson.NewObjectId(),
+		Phone:    r.Phone,
 		Name:     r.Name,
+		Email:          r.Email,
 		Password: hash,
 		Salt:     salt,
 		NoEncPwd: r.Password,
@@ -127,7 +130,7 @@ func (u *User) FindByName(name string) (code int, err error) {
 	return
 }
 // update user information
-func (u *User) UpdateUser()  (err error) {
+func (u *User) UpdateUser() (err error) {
 	mConn := mongo.Conn()
 	defer mConn.Clone()
 	c := mConn.DB("cloud-platform").C("users")

@@ -37,7 +37,7 @@ func init() {
 	beego.GlobalControllerRouter["cloud-platform-ua/controllers:UserController"] = append(beego.GlobalControllerRouter["cloud-platform-ua/controllers:UserController"],
 		beego.ControllerComments{
 			Method: "GetUserInfo",
-			Router: `/:userId`,
+			Router: `/:name`,
 			AllowHTTPMethods: []string{"get"},
 			Params: nil})
 

@@ -34,22 +34,14 @@ func (this *UserController) Register() {
 	}
 
 	// 在gogs上创建用户
-	req := httplib.Post(beego.AppConfig.String("gogs::url") + CreateUser)
-	req.SetBasicAuth(beego.AppConfig.String("gogs::admin"), beego.AppConfig.String("gogs::password"))
-	req.Header("Content-Type", "application/json")
-	req.Param("source_id", "0")
-	req.Param("login_name", form.Name)
-	req.Param("username", form.Name)
-	req.Param("email", form.Email)
-	req.Param("password", form.Password)
-	resp, err := req.Response()
-	if err != nil {
-		beego.Error("Git register user error:", err)
+	statusCode,gitErr := CreateGitUser(&form)
+	if gitErr != nil {
+		beego.Error("Git register user error:", gitErr)
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
 		this.ServeJSON()
 		return
 	}
-	if resp.StatusCode != 201 {
+	if statusCode != 201 {
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
 		this.ServeJSON()
 		return
@@ -85,44 +77,29 @@ func (this *UserController) Register() {
 // @Param password formData string true "密码"
 // @router /login [post]
 func (this *UserController) Login() {
-	phone := this.GetString("phone")
 	name := this.GetString("name")
 	password := this.GetString("password")
 	// 验证输入信息
-	if phone == "" && name == "" {
-		beego.Error("至少输入phone number或者name中的一个")
+	if name == "" {
+		beego.Error("请输入用户名!")
 		this.Data["json"] = models.NewErrorInfo(ErrInputData)
 		this.ServeJSON()
 		return
 	}
 	// 验证用户是否存在
 	user := models.User{}
-	if phone != "" {
-		//通过手机号查找
-		if code, err := user.FindByID(phone); err != nil {
-			beego.Error("通过手机号查找用户失败", err)
-			if code == models.ErrNotFound {
-				this.Data["json"] = models.NewErrorInfo(ErrNoUser)
-			} else {
-				this.Data["json"] = models.NewErrorInfo(ErrDatabase)
-			}
-			this.ServeJSON()
-			return
+
+	if code, err := user.FindByName(name); err != nil {
+		beego.Error("通过用户名查找用户失败", err)
+		if code == models.ErrNotFound {
+			this.Data["json"] = models.NewErrorInfo(ErrNoUser)
+		} else {
+			this.Data["json"] = models.NewErrorInfo(ErrDatabase)
 		}
-	} else {
-		//通过用户名查找
-		beego.Debug("enter to find by name...")
-		if code, err := user.FindByName(name); err != nil {
-			beego.Error("通过用户名查找用户失败", err)
-			if code == models.ErrNotFound {
-				this.Data["json"] = models.NewErrorInfo(ErrNoUser)
-			} else {
-				this.Data["json"] = models.NewErrorInfo(ErrDatabase)
-			}
-			this.ServeJSON()
-			return
-		}
+		this.ServeJSON()
+		return
 	}
+
 	beego.Debug("UserInfo:", &user)
 	// 验证用户密码
 	if ok, err := user.CheckPass(password); err != nil {
@@ -135,16 +112,17 @@ func (this *UserController) Login() {
 		this.ServeJSON()
 		return
 	}
+
 	user.ClearPass()
 
-	this.SetSession(SessId + user.ID, user.ID)
+	this.SetSession(SessId + user.Name, user.Name)
 
 	this.Data["json"] = &models.LoginInfo{Code: 0, UserInfo: &user}
 	this.ServeJSON()
 
 }
 // @Description user logout
-// @Param phone formData string true "用户手机号"
+// @Param name formData string true "用户名"
 // @router /logout [post]
 func (this *UserController) Logout() {
 	form := models.LogoutForm{}
@@ -163,13 +141,13 @@ func (this *UserController) Logout() {
 		return
 	}
 
-	if this.GetSession(SessId + form.Phone) != form.Phone {
+	if this.GetSession(SessId + form.Name) != form.Name {
 		this.Data["json"] = models.NewErrorInfo(ErrInvalidUser)
 		this.ServeJSON()
 		return
 	}
 
-	this.DelSession(SessId + form.Phone)
+	this.DelSession(SessId + form.Name)
 
 	this.Data["json"] = models.NewNormalInfo("Success")
 	this.ServeJSON()
@@ -203,8 +181,8 @@ func (this *UserController) UserUpdate() {
 	}
 
 	user := models.User{}
-	if code, err := user.FindByID(updateForm.Phone); err != nil {
-		beego.Error("通过手机号查找用户失败", err)
+	if code, err := user.FindByName(updateForm.Name); err != nil {
+		beego.Error("通过用户名查找用户失败", err)
 		if code == models.ErrNotFound {
 			this.Data["json"] = models.NewErrorInfo(ErrNoUser)
 		} else {
@@ -227,12 +205,12 @@ func (this *UserController) UserUpdate() {
 
 }
 // @Description get user information
-// @Param userId path string true "用户手机号(用户id)"
-// @router /:userId [get]
+// @Param name path string true "用户名"
+// @router /:name [get]
 func (this *UserController) GetUserInfo() {
-	userId := this.GetString(":userId")
+	name := this.GetString(":name")
 	user := models.User{}
-	if code, err := user.FindByID(userId); err != nil {
+	if code, err := user.FindByName(name); err != nil {
 		beego.Error("通过手机号查找用户失败", err)
 		if code == models.ErrNotFound {
 			this.Data["json"] = models.NewErrorInfo(ErrNoUser)
@@ -244,5 +222,18 @@ func (this *UserController) GetUserInfo() {
 	}
 	this.Data["json"] = &models.LoginInfo{Code: 0, UserInfo: &user}
 	this.ServeJSON()
+}
+// 在gogs上创建git用户
+func CreateGitUser(form *models.RegisterForm) (code int, err error) {
+	req := httplib.Post(beego.AppConfig.String("gogs::url") + CreateUser)
+	req.SetBasicAuth(beego.AppConfig.String("gogs::admin"), beego.AppConfig.String("gogs::password"))
+	req.Header("Content-Type", "application/json")
+	req.Param("source_id", "0")
+	req.Param("login_name", form.Name)
+	req.Param("username", form.Name)
+	req.Param("email", form.Email)
+	req.Param("password", form.Password)
+	resp, err := req.Response()
+	return resp.StatusCode, err
 }
 
