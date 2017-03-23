@@ -34,7 +34,7 @@ func (this *UserController) Register() {
 	}
 
 	// 在gogs上创建用户
-	statusCode,gitErr := CreateGitUser(&form)
+	statusCode, gitErr := CreateGitUser(&form)
 	if gitErr != nil {
 		beego.Error("Git register user error:", gitErr)
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
@@ -43,6 +43,35 @@ func (this *UserController) Register() {
 	}
 	if statusCode != 201 {
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
+		this.ServeJSON()
+		return
+	}
+
+	// 创建镜像仓库的repository
+	hubStatusCode, hubErr := CreateHub(&form)
+	if hubErr != nil {
+		beego.Error("Hub repository create error:", hubErr)
+		this.Data["json"] = models.NewErrorInfo(ErrHubReg)
+		this.ServeJSON()
+		return
+	}
+	beego.Debug("the hub status code is ", hubStatusCode)
+	if hubStatusCode != 201 {
+		this.Data["json"] = models.NewErrorInfo(ErrHubReg)
+		this.ServeJSON()
+		return
+	}
+
+	//创建k8s的namespace
+	k8sStatusCode, k8sErr := CreateK8sNamespace(&form)
+	if k8sErr != nil {
+		beego.Error("k8s namespace create error:", hubErr)
+		this.Data["json"] = models.NewErrorInfo(ErrK8sReg)
+		this.ServeJSON()
+		return
+	}
+	if k8sStatusCode != 200 {
+		this.Data["json"] = models.NewErrorInfo(ErrK8sReg)
 		this.ServeJSON()
 		return
 	}
@@ -223,6 +252,16 @@ func (this *UserController) GetUserInfo() {
 	this.Data["json"] = &models.LoginInfo{Code: 0, UserInfo: &user}
 	this.ServeJSON()
 }
+// 创建镜像仓库的repository
+func CreateHub(form *models.RegisterForm) (code int, err error) {
+	req := httplib.Post(beego.AppConfig.String("hub::url"))
+	req.SetBasicAuth(beego.AppConfig.String("hub::user"), beego.AppConfig.String("hub::password"))
+	hub := models.Hub{ProjectName:form.Name, Public:1}
+	req.JSONBody(hub)
+	resp, err := req.Response()
+	return resp.StatusCode, err
+}
+
 // 在gogs上创建git用户
 func CreateGitUser(form *models.RegisterForm) (code int, err error) {
 	req := httplib.Post(beego.AppConfig.String("gogs::url") + CreateUser)
@@ -236,4 +275,14 @@ func CreateGitUser(form *models.RegisterForm) (code int, err error) {
 	resp, err := req.Response()
 	return resp.StatusCode, err
 }
+
+// 创建kubernetes的namespace
+func CreateK8sNamespace(form *models.RegisterForm) (code int, err error) {
+	req := httplib.Post(beego.AppConfig.String("k8s::url"))
+	req.Param("namespace", form.Name)
+	resp, err := req.Response()
+	return resp.StatusCode, err
+}
+
+
 

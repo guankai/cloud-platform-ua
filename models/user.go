@@ -26,6 +26,11 @@ type User struct {
 	IsAdmin  int       `bson:"is_admin" json:"is_admin,omitempty"`
 }
 
+type Hub struct {
+	ProjectName string `json:"project_name"`
+	Public      int `json:"public"`
+}
+
 const pwHashBytes = 64
 
 func generateSalt() (salt string, err error) {

@@ -23,6 +23,8 @@ const (
 	ErrWriteFile    = "写文件出错"
 	ErrSystem       = "操作系统错误"
 	ErrGitReg	= "Git注册用户失败"
+	ErrHubReg	= "Hub的仓库生成失败"
+	ErrK8sReg	= "k8s命名空间创建失败"
 	SessId          = "user_id_"
 	CreateUser	= "admin/users"
 )
