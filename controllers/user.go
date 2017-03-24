@@ -5,6 +5,7 @@ import (
 	"cloud-platform-ua/models"
 	"time"
 	"github.com/astaxie/beego/httplib"
+	"crypto/tls"
 )
 
 // Operations about Users
@@ -255,10 +256,14 @@ func (this *UserController) GetUserInfo() {
 // 创建镜像仓库的repository
 func CreateHub(form *models.RegisterForm) (code int, err error) {
 	req := httplib.Post(beego.AppConfig.String("hub::url"))
+	req.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	req.SetBasicAuth(beego.AppConfig.String("hub::user"), beego.AppConfig.String("hub::password"))
 	hub := models.Hub{ProjectName:form.Name, Public:1}
 	req.JSONBody(hub)
 	resp, err := req.Response()
+	if err != nil{
+		beego.Error("create hub err ",err)
+	}
 	return resp.StatusCode, err
 }
 
