@@ -6,6 +6,7 @@ import (
 	"time"
 	"github.com/astaxie/beego/httplib"
 	"crypto/tls"
+	"net/http"
 )
 
 // Operations about Users
@@ -35,43 +36,43 @@ func (this *UserController) Register() {
 	}
 
 	// 在gogs上创建用户
-	statusCode, gitErr := CreateGitUser(&form)
+	gitResp, gitErr := CreateGitUser(&form)
 	if gitErr != nil {
 		beego.Error("Git register user error:", gitErr)
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
 		this.ServeJSON()
 		return
 	}
-	if statusCode != 201 {
+	if gitResp.StatusCode != 201 {
 		this.Data["json"] = models.NewErrorInfo(ErrGitReg)
 		this.ServeJSON()
 		return
 	}
 
 	// 创建镜像仓库的repository
-	hubStatusCode, hubErr := CreateHub(&form)
+	hubResp, hubErr := CreateHub(&form)
 	if hubErr != nil {
 		beego.Error("Hub repository create error:", hubErr)
 		this.Data["json"] = models.NewErrorInfo(ErrHubReg)
 		this.ServeJSON()
 		return
 	}
-	beego.Debug("the hub status code is ", hubStatusCode)
-	if hubStatusCode != 201 {
+	beego.Debug("the hub status code is ", hubResp.StatusCode)
+	if hubResp.StatusCode != 201 {
 		this.Data["json"] = models.NewErrorInfo(ErrHubReg)
 		this.ServeJSON()
 		return
 	}
 
 	//创建k8s的namespace
-	k8sStatusCode, k8sErr := CreateK8sNamespace(&form)
+	k8sResp, k8sErr := CreateK8sNamespace(&form)
 	if k8sErr != nil {
 		beego.Error("k8s namespace create error:", hubErr)
 		this.Data["json"] = models.NewErrorInfo(ErrK8sReg)
 		this.ServeJSON()
 		return
 	}
-	if k8sStatusCode != 200 {
+	if k8sResp.StatusCode != 200 {
 		this.Data["json"] = models.NewErrorInfo(ErrK8sReg)
 		this.ServeJSON()
 		return
@@ -254,21 +255,17 @@ func (this *UserController) GetUserInfo() {
 	this.ServeJSON()
 }
 // 创建镜像仓库的repository
-func CreateHub(form *models.RegisterForm) (code int, err error) {
+func CreateHub(form *models.RegisterForm) (resp *http.Response, err error) {
 	req := httplib.Post(beego.AppConfig.String("hub::url"))
 	req.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	req.SetBasicAuth(beego.AppConfig.String("hub::user"), beego.AppConfig.String("hub::password"))
 	hub := models.Hub{ProjectName:form.Name, Public:1}
 	req.JSONBody(hub)
-	resp, err := req.Response()
-	if err != nil{
-		beego.Error("create hub err ",err)
-	}
-	return resp.StatusCode, err
+	return req.Response()
 }
 
 // 在gogs上创建git用户
-func CreateGitUser(form *models.RegisterForm) (code int, err error) {
+func CreateGitUser(form *models.RegisterForm) (resp *http.Response, err error) {
 	req := httplib.Post(beego.AppConfig.String("gogs::url") + CreateUser)
 	req.SetBasicAuth(beego.AppConfig.String("gogs::admin"), beego.AppConfig.String("gogs::password"))
 	req.Header("Content-Type", "application/json")
@@ -277,16 +274,14 @@ func CreateGitUser(form *models.RegisterForm) (code int, err error) {
 	req.Param("username", form.Name)
 	req.Param("email", form.Email)
 	req.Param("password", form.Password)
-	resp, err := req.Response()
-	return resp.StatusCode, err
+	return req.Response()
 }
 
 // 创建kubernetes的namespace
-func CreateK8sNamespace(form *models.RegisterForm) (code int, err error) {
+func CreateK8sNamespace(form *models.RegisterForm) (resp *http.Response, err error) {
 	req := httplib.Post(beego.AppConfig.String("k8s::url"))
 	req.Param("namespace", form.Name)
-	resp, err := req.Response()
-	return resp.StatusCode, err
+	return req.Response()
 }
 
 
